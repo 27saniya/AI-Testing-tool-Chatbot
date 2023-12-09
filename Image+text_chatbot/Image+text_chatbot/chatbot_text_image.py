@@ -9,6 +9,11 @@ import gdown
 import re
 
 
+# refer to this https://discuss.streamlit.io/t/tesseract-is-not-installed-or-its-not-in-my-path/16039
+# change this to tesseract path of streamlit
+# if deploying on another instance, do
+# apt-get install tesseract-ocr imagemagick libtesseract-dev
+
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Chatbot Dependencies
@@ -48,7 +53,7 @@ nltk.download('punkt')
 class Chatbot_Response:
     def __init__(self):
         try:
-            self.g = Graph("bolt://localhost:7687", user="neo4j", password="ChocolateIcecream@1234")
+            self.g = Graph("neo4j+ssc://8d15dfb6.databases.neo4j.io", user="neo4j", password="VRXTwfUV8JXyZAvQjpsKVux5Ve_L5FWH0_UX7BnRbVA")
         except Exception as e:
             print(f"Error connecting to Graph: {e}")
             raise
@@ -105,13 +110,14 @@ class Chatbot_Response:
         detected_text = yolo_and_ocr(image1)
         is_keyword_found = self.check_keywords_in_graph(detected_text)
         if not is_keyword_found:
-            return "Uploaded image is not relevant to AI testing tool. Please upload a relevant image.", False
+            print('Uploaded image is not relevant to AI testing tool. Please upload relevant image')
+            return
         user_question = f"{user_question} {detected_text}"
-        #print("Updated Question:", user_question)
+        print("Updated Question:", user_question)
 
-        response = self.answer_question(user_question)
-        return response, True  # Return the response and True indicating the image is relevant
-
+        temp =  self.answer_question(user_question)
+        print(temp)
+        return temp
 
     def answer_question(self, user_question):
         # Extract all operation names from the KG
@@ -163,6 +169,7 @@ class Chatbot_Response:
             predicted_answers.append(self.tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True))
 
             return predicted_answers[0]
+
 
 # Initialize YOLO
 try:
@@ -225,7 +232,7 @@ if __name__ == '__main__':
             if user_question.lower() == "bye":
                 print("Chatbot: Goodbye!")
                 break
-            
+
             upload_image_choice = input("Do you want to upload an image? (y/n): ").lower()
             if upload_image_choice == 'y':
                 print("Please upload your image.")

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot Interface</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+    <style>
+        /* Add some global styles to make the font smoother and more readable */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #444;
+        }
+        
+
+        /* Style the container of the chatbox */
+        #chatbox-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 50px auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px 0 rgba(0,0,0,0.26);
+        }
+
+       
+        /* Style the title bar */
+        #chatbox-title {
+            background-color: #5a62d6;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        /* Style the chatbox itself */
+        #chatbox {
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            height: 600px;
+            overflow-y: auto;
+        }
+
+        /* CSS for images in chat */
+        .message-wrapper .chat-image {
+            max-width: 60%; /* Image takes up to 60% of the container width */
+            border-radius: 8px; /* Optional: Gives images rounded corners */
+            margin-bottom: 10px; /* Space below the image */
+        }
+
+        .user .chat-image {
+            margin-left: auto; /* Aligns the image to the right */
+            max-width: 100%;
+        }
+
+        .bot .chat-image {
+            margin-right: auto; /* Aligns the image to the left */
+        }
+
+        /* Style the user and bot messages */
+        .user, .bot {
+            display: block;
+            clear: both;
+            padding: 8px 15px;
+            border-radius: 18px;
+            margin-bottom: 2px;
+            max-width: 85%;
+        }
+
+        #file-upload-info .file-name {
+            margin-right: 5px;
+        }
+
+        /* If you want to style the spinner and checkmark */
+        #file-upload-info .fa-spinner,
+        #file-upload-info .fa-check {
+            margin-left: 5px;
+            color: #28a745; /* Green color for success */
+        }
+
+
+        .user {
+            color: white;
+            background-color: #5a62d6;
+            align-self: flex-end;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .bot {
+            background-color: #e0e0e0;
+        }
+
+        /* Style the input area */
+        #input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        #userInput {
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-right: 10px;
+        }
+
+        #imageInput {
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #5a62d6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4b54d3;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 1.2em; /* Adjust size as needed */
+            color: #5a62d6; /* Adjust to your color theme */
+        }
+
+.icon-button:hover {
+    color: #4b54d3; /* Darker shade for hover effect */
+}
+
+
+        /* Scroll to bottom */
+        #chatbox {
+            scroll-behavior: smooth;
+        }
+
+        #feedback-area p {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        #feedback-area button {
+            margin-right: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            /* Add your button styling here */
+        }
+
+
+        /* Add this new CSS for blinking dots */
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .typing-dots span {
+            animation: blink 1.4s infinite both;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+
+    </style>
+    
+</head>
+<body>
+    <div id="chatbox-container">
+        <div id="chatbox-title">🤖💬 AI Testing Tool Chatbot</div>
+        <div id="chatbox">
+            <!-- Chat messages will go here -->
+        </div>
+        
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Type a message..." />
+            
+            <!-- Image upload icon -->
+            <label for="imageInput" class="icon-button">
+                <i class="fas fa-paperclip"></i> <!-- This is the paperclip icon for attaching files -->
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="onFileSelected(event)" />
+            </label>
+            
+            <!-- Upload information will be displayed here -->
+            <div id="file-upload-info"></div>
+
+            <!-- Microphone icon, if needed for speech-to-text functionality -->
+            <button id="speakButton" class="icon-button">
+                <i class="fas fa-microphone"></i>
+            </button>
+        
+            <!-- Send message icon -->
+            <button onclick="sendMessage()" class="icon-button">
+                <i class="fas fa-paper-plane"></i> <!-- This is the send icon -->
+            </button>
+        </div>
+        
+    <!-- ... rest of the HTML ... -->
+    <script>
+        function sendMessage() {
+            var input = document.getElementById('userInput').value;
+            var imageInput = document.getElementById('imageInput');
+            var imageFile = imageInput.files[0];
+            var imageData = '';
+
+            if (input.trim() === '') return; // Don't send empty messages
+
+            if (imageFile) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    imageData = e.target.result;
+                    postMessage(input, imageData);
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                postMessage(input, imageData);
+            }
+
+            document.getElementById('userInput').value = ''; // Clear the text input
+            document.getElementById('imageInput').value = ''; // Clear the file input
+            document.getElementById('file-upload-info').textContent = ''; // Clear the file 
+        }
+        
+        function resetUploadState() {
+            document.getElementById('userInput').value = ''; // Clear the text input
+            document.getElementById('imageInput').value = ''; // Clear the file input
+            document.getElementById('file-upload-info').textContent = ''; // Clear the file upload info
+        }
+
+        function onFileSelected(event) {
+            var selectedFile = event.target.files[0];
+            var infoDiv = document.getElementById('file-upload-info');
+
+            if (selectedFile) {
+                // Display the file name and a loading spinner
+                infoDiv.innerHTML = `<span class="file-name">${selectedFile.name}</span> <i class="fas fa-spinner fa-spin"></i>`;
+
+                // Simulate the end of the loading process with a timeout
+                // Remove the spinner and replace it with a checkmark after 1 second
+                setTimeout(function() {
+                    infoDiv.innerHTML = `<span class="file-name">${selectedFile.name}</span> <i class="fas fa-check" style="color: #28a745;"></i>`;
+                }, 1000); // Adjust timeout as needed
+            } else {
+                // Clear the file upload info if no file is selected
+                infoDiv.innerHTML = '';
+            }
+        }
+
+
+           
+        // This function will be called when the page loads to display the initial bot message.
+        function displayInitialBotMessage() {
+            displayMessage("How may I assist you?", 'bot');
+        }
+        
+        // Call the initial bot message function when the window loads
+        window.onload = function() {
+            displayInitialBotMessage();
+        };
+
+        // Add a function to display typing dots
+        function displayTypingDots(sender) {
+            var chatbox = document.getElementById('chatbox');
+            var messageWrapper = document.createElement('div');
+            messageWrapper.className = 'message-wrapper ' + sender;
+            
+            // Create a container for the typing dots
+            var typingDots = document.createElement('div');
+            typingDots.className = 'typing-dots';
+
+            // Create three span elements for the dots
+            for (var i = 0; i < 3; i++) {
+                var dot = document.createElement('span');
+                dot.innerText = '.';
+                typingDots.appendChild(dot);
+            }
+
+            // Append the typing dots to the message wrapper
+            messageWrapper.appendChild(typingDots);
+
+            // Append the message wrapper with dots to the chatbox
+            chatbox.appendChild(messageWrapper);
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            // Return the message wrapper so we can remove it later
+            return messageWrapper;
+        }
+    
+        function displayMessage(message, sender) {
+            var chatbox = document.getElementById('chatbox');
+            var messageWrapper = document.createElement('div');
+            messageWrapper.className = 'message-wrapper ' + sender;
+
+            var messageElement = document.createElement('p');
+            messageElement.innerText = message;
+            messageElement.className = 'message';
+
+            if (sender === 'user') {
+                var icon = '<div class="icon user-icon">👤</div>';
+                messageWrapper.innerHTML = icon;
+                messageWrapper.appendChild(messageElement);
+            } else {
+                var icon = '<div class="icon bot-icon">🤖</div>';
+                messageWrapper.innerHTML = icon;
+                messageWrapper.appendChild(messageElement);
+            }
+
+            chatbox.appendChild(messageWrapper);
+            chatbox.scrollTop = chatbox.scrollHeight; // Scroll to the bottom of the chat
+        }
+
+        function postMessage(message, image_data) {
+            // Display the user message immediately
+            displayMessage(message, 'user');
+            
+            if (image_data) {
+                var imageHtml = '<img src="' + image_data + '" />'; // Create HTML string for image
+                displayImage(imageHtml, 'user'); // Pass HTML string to displayImage
+            }
+
+            // Display typing dots for bot before showing the message
+            var typingDots = displayTypingDots('bot');
+
+            $.post('/send_message', {message: message, image_data: image_data}, function(response){
+        
+                // Remove the typing dots after a delay
+                setTimeout(function() {
+                    chatbox.removeChild(typingDots);
+                    // Display the bot response
+                    //displayBotResponse(response.bot_response, 'bot');
+                    displayMessage(response.bot_response, 'bot');
+                }, 2000); // Delay in milliseconds (2 seconds)
+
+                // Clear input fields
+                $('#userInput').val('');
+                $('#imageInput').val('');
+                
+                resetUploadState(); // Reset the upload state
+            });
+        }
+
+        function handleFeedback(response) {
+            // Remove the feedback question and buttons
+            var feedbackArea = document.getElementById('feedback-area');
+            if (feedbackArea) {
+                feedbackArea.remove();
+            }
+
+            // Send the feedback to the server or handle it as needed
+            if (response === 'yes') {
+                displayMessage('Great, thank you! How can I assist you further?', 'bot');
+            } else {
+                displayMessage('Sorry to hear that. How can I assist you further?', 'bot');
+            }
+        }
+
+
+
+        function displayImage(imageHtml, sender) {
+            var chatbox = document.getElementById('chatbox');
+            var wrapper = document.createElement('div'); // Create a wrapper div
+            wrapper.className = sender; // Apply 'user' or 'bot' class to the wrapper
+            
+            // Convert the imageHtml string into a DOM element
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = imageHtml;
+            var imgElement = tempDiv.firstChild;
+            
+            // Apply the chat-image class to the image element
+            imgElement.className = 'chat-image';
+            
+            // Append the image element to the wrapper
+            wrapper.appendChild(imgElement);
+            
+            // Append the wrapper div to the chatbox
+            chatbox.appendChild(wrapper);
+            chatbox.scrollTop = chatbox.scrollHeight; // Scroll to the bottom of the chat
+        }
+
+        function displayBotResponse(message) {
+            displayMessage(message, 'bot');
+
+            // Add a feedback question after the bot's response
+            var feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'feedback-area';
+            feedbackDiv.innerHTML = `
+                <p>Are you satisfied with my answer? Please give feedback.</p>
+                <button onclick="handleFeedback('yes')">Yes</button>
+                <button onclick="handleFeedback('no')">No</button>
+            `;
+            document.getElementById('chatbox').appendChild(feedbackDiv);
+        }
+
+        
+
+    </script>
+<!-- ... rest of the HTML ... -->
+
+</body>
+</html>
